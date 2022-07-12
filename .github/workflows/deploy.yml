@@ -1,0 +1,31 @@
+---
+name: Deploy Serverless
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: 'Deploy Serverless'
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '16.x'
+
+    - name: Install Serverless Framework
+      run: |
+        npm install -g serverless
+
+    - name: Serverless AWS authentication
+      run: serverless config credentials --provider aws --key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Deploy Lambda functions
+      run: serverless deploy --stage ${{ secrets.STAGE }} --region ${{ secrets.AWS_REGION }} --verbose
