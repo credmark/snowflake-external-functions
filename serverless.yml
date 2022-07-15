@@ -5,6 +5,14 @@ frameworkVersion: '3'
 
 provider:
   name: aws
+  # The S3 prefix under which deployed artifacts are stored (default: serverless)
+  deploymentPrefix: serverless
+  # Configure the S3 bucket used by Serverless Framework to deploy code packages to Lambda
+  deploymentBucket:
+    # Name of an existing bucket to use (default: created by serverless)
+    name: credmark.serverless.${self:provider.region}.${self:provider.stage}.deploys
+    # On deployment, serverless prunes artifacts older than this limit (default: 5)
+    maxPreviousDeploymentArtifacts: 10
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-west-2'}
   ecr:
