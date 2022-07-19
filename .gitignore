@@ -1,2 +1,8 @@
 # Serverless directories
 .serverless
+
+# Node modules
+node_modules
+
+# AWS events
+event.json
