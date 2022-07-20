@@ -126,27 +126,40 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
 
 
         example output of this method:
-        {'event_from': '0xe59d5b5eb2a4e02c033a46a18e47f399f7a1e14b',
-        'event_to': '0x3349217670f9aa55c5640a2b3d806654d27d0569',
-        'event_value': 241002558777421199592}
+    {
+        'name': 'Transfer',
+        'signature': 'Transfer(address,address,uint256)',
+        'signature_hash': '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+        'data': {
+            'from': '0xe59d5b5eb2a4e02c033a46a18e47f399f7a1e14b',
+            'to': '0x3349217670f9aa55c5640a2b3d806654d27d0569',
+            'value': 241002558777421199592
+            }
+        }
     """
     result = {}
     topic_index = 1
     topics_arr = topics.split(',')
     data_types = []
     data_names = []
+    result = {
+        'name': abi['name'],
+        'signature': to_signature(abi),
+        'signature_hash': topics_arr[0],
+        'data': {}
+    }
+
     for idx, i in enumerate(abi['inputs']):
         name = i['name'] if i.get('name', '') != '' else str(idx)
-        name = f'event_{name}'
         if i['indexed']:
-            result[name] = decode_abi(
+            result['data'][name] = decode_abi(
                 [i['type']], bytes.fromhex(topics_arr[topic_index][2:]))[0]
             topic_index += 1
             continue
         data_types.append(i['type'])
         data_names.append(name)
     data_values = decode_abi(data_types, bytes.fromhex(data[2:]))
-    result.update(
+    result['data'].update(
         {data_names[i]: v for i, v in enumerate(data_values)})
     return result
 
@@ -154,17 +167,26 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
 def decode_contract_function(abi: dict, input: str, output: str) -> dict:
     """
         Takes ABI definition, input, and output, and decodes into readable format.
-        it will use the placement index if no name is given. 
+        it will use the placement index if no name is given.
         outputs to functions may not be captured by the signature hash, therefore
         multiple decoded traces may have the same signature with different output structure.
 
         example output of this method:
 
-
-        {'input_recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
-        'input_amount': 242859825102880658436213,
-        'output_0': True}
+        {
+        'name': 'transfer',
+        'signature': 'transfer(address,uint256)',
+        'signature_hash': '0xa9059cbb',
+        'inputs': {
+            'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
+            'amount': 242859825102880658436213
+            },
+        'outputs': {
+            '0': True
+            }
+        }
     """
+
     def types(abi):
         return [o['type'] for o in abi]
 
@@ -179,9 +201,14 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
 
     input_names = names(abi['inputs'])
     output_names = names(abi['outputs'])
-    result = {f'input_{input_names[i]}': v for i,
-              v in enumerate(decoded_input_values)}
-    result.update(
-        {f'output_{output_names[i]}': v for i, v in enumerate(decoded_output_values)})
+    result = {
+        'name': abi['name'],
+        'signature': to_signature(abi),
+        'signature_hash': input[:10]
+    }
+    result['inputs'] = {input_names[i]: v for i,
+                        v in enumerate(decoded_input_values)}
+    result['outputs'] = {output_names[i]: v for i,
+                         v in enumerate(decoded_output_values)}
 
     return result
