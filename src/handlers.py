@@ -1,8 +1,9 @@
 import json
 import logging
 
-from web3 import Web3
 from eth_abi import decode_abi
+from web3 import Web3
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
