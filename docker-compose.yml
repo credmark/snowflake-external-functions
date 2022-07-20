@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  to_signature:
+    build: .
+    command: [handlers.to_signature_handler]
+  to_signature_hash:
+    build: .
+    command: [handlers.to_signature_hash_handler]

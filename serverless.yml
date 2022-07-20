@@ -22,6 +22,9 @@ provider:
         path: ./
         platform: linux/amd64  # Needs to be explicitly defined for building from an ARM based CPU (i.e. Apple Silicon Mac)
 
+plugins:
+  - serverless-offline
+
 functions:
   to_signature:
     image:
