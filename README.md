@@ -31,12 +31,18 @@ serverless config credentials \
 
 ## Deployment instructions
 
+### Using `make`
+
+The [Makefile](./Makefile) has deployment targets configured for both dev and prod environments. `deploy-dev` will deploy the service to the AWS dev account and requires having the `AWS_DEV_PROFILE` environment variable set. This environment variable should have the name of the AWS CLI profile name that points to the AWS dev account. Read the [docs](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) for more information on setting up named AWS CLI profiles.
+
+### Using `serverless`
+
 > **Requirements**: Docker. In order to build images locally and push them to ECR, you need to have Docker installed on your local machine. Please refer to [official documentation](https://docs.docker.com/get-docker/).
 
 In order to deploy your service, run the following command
 
 ```{bash}
-serverless deploy
+serverless deploy --stage <STAGE NAME> --region <AWS REGION> --aws-profile <AWS CLI PROFILE NAME>
 ```
 
 ## Test your service
