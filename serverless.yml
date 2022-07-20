@@ -1,7 +1,7 @@
 ---
 service: snowflake-external-functions
 
-frameworkVersion: '3'
+frameworkVersion: "3"
 
 provider:
   name: aws
@@ -20,7 +20,7 @@ provider:
     images:
       appimage:
         path: ./
-        platform: linux/amd64  # Needs to be explicitly defined for building from an ARM based CPU (i.e. Apple Silicon Mac)
+        platform: linux/amd64 # Needs to be explicitly defined for building from an ARM based CPU (i.e. Apple Silicon Mac)
 
 plugins:
   - serverless-offline
@@ -42,4 +42,22 @@ functions:
     events:
       - http:
           path: /api/v1/abi/signature_hash
+          method: POST
+
+  decode_contract_event:
+    image:
+      name: appimage
+      command: ["handlers.decode_contract_event_handler"]
+    events:
+      - http:
+          path: /api/v1/decode/decode_contract_event
+          method: POST
+
+  decode_contract_function:
+    image:
+      name: appimage
+      command: ["handlers.decode_contract_function_handler"]
+    events:
+      - http:
+          path: /api/v1/decode/decode_contract_function
           method: POST

@@ -7,3 +7,9 @@ services:
   to_signature_hash:
     build: .
     command: [handlers.to_signature_hash_handler]
+  decode_contract_event:
+    build: .
+    command: [handlers.decode_contract_event_handler]
+  decode_contract_function:
+    build: .
+    command: [handlers.decode_contract_function_handler]
