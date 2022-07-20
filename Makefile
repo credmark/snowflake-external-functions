@@ -14,3 +14,18 @@ local-to-signature-hash:
 	@echo "service will be made available at ${SERVICE_URL}"
 	@echo "=================================================================="
 	@docker-compose run -p ${LOCAL_PORT}:8080 to_signature_hash
+
+local-decode-contract-event:
+	@echo "testing to_signature_hash_handler..."
+	@echo "=================================================================="
+	@echo "service will be made available at ${SERVICE_URL}"
+	@echo "=================================================================="
+	@docker-compose run -p ${LOCAL_PORT}:8080 decode_contract_event
+
+
+local-decode_contract_function:
+	@echo "testing to_signature_hash_handler..."
+	@echo "=================================================================="
+	@echo "service will be made available at ${SERVICE_URL}"
+	@echo "=================================================================="
+	@docker-compose run -p ${LOCAL_PORT}:8080 decode_contract_function
