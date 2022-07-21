@@ -35,6 +35,10 @@ deploy-dev:
 	@echo deploying serverless service to dev account
 	@serverless deploy --stage dev --region ${AWS_REGION} --verbose --aws-profile ${AWS_DEV_PROFILE}
 
+remove-dev:
+	@echo removing the service
+	@serverless remove --stage dev --region ${AWS_REGION} --verbose --aws-profile ${AWS_DEV_PROFILE}
+
 deploy-prod:
 	@echo deploying serverless service to dev account
 	@serverless deploy --stage prod --region ${AWS_REGION} --verbose --aws-profile ${AWS_PROFILE}

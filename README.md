@@ -115,3 +115,67 @@ functions:
 ```
 
 > *Note: adding the `events` key will create a new API gateway endpoint where the lambda can be triggered. In the case above, this would create a new endpoint with the path `some-url.com/some/api/endpoint/path
+
+## Setting up external function in Snowflake
+
+This serverless function is deployed via a [github workflow](.github/workflows/deploy.yml). However, there are additional resources that must be created in order to allow Snowflake to call this external function. Unfortunately (for now), these resources must be created by hand and cannot be automated with Terraform as there are circular dependencies involved.
+
+[This](https://data.solita.fi/snowflake-external-functions-tutorial-for-aws-lambda/) guide was used to setup the correct IAM and Snowflake resources.
+
+The general steps are:
+
+1. Create an IAM role
+2. Navigate to the API gateway of the Lambda function and change the authorization mode in the "Method Request" section of the endpoint to use "AWS_IAM".
+3. Copy the ARN of the endpoint
+4. Create a resource policy in API gateway using this template:
+
+    ```{json}
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:sts::<ACCOUNT ID>:assumed-role/<CREATED IAM ROLE NAME>/snowflake"
+                },
+                "Action": "execute-api:Invoke",
+                "Resource": "arn:aws:execute-api:<AWS REGION>:<ACCOUNT ID>:<API GATEWAY ID>/*/POST/<API RESOURCE PATH>"
+            }
+        ]
+    }
+    ```
+
+5. Navigate to Snowflake and create a new API integration object:
+
+    ```{sql}
+    create or replace api integration <INTEGRATION NAME>
+    api_provider = aws_api_gateway
+    api_aws_role_arn = 'arn:aws:iam::<ACCOUNT ID>:role/<IAM ROLE NAME>'
+    enabled = true
+    api_allowed_prefixes = ('https://<API GATEWAY ID>.execute-api.<AWS REGION>.amazonaws.com/<API GATEWAY STAGE NAME>/');
+    ```
+
+6. Run the following command to grab the values for `API_AWS_IAM_USER_ARN` and `API_AWS_EXTERNAL_ID`:
+
+    ```{sql}
+    describe integration <INTEGRATION NAME>;
+    ```
+
+7. Go back to AWS and edit the trust relationship policy document of the IAM role created in step 1. Replace the current value of `Statement.Principal.AWS` with the `API_AWS_IAM_USER_ARN` value retrieved from Snowflake. Additionally, add the following to the `Statement.Condition` field:
+
+    ```{json}
+    {
+        "StringEquals": {
+            "sts:ExternalId": `API_AWS_EXTERNAL_ID`  # The actual value retrieved from Snowflake
+        }
+    }
+    ```
+
+8. Lastly, return to Snowflake and create the external function by running the following query:
+
+    ```{sql}
+    create or replace external function decode_abi_input_parameter_prod(inp_str VARCHAR, inp_type VARCHAR)
+    RETURNS VARCHAR
+    api_integration = <INTEGRATION NAME>
+    as 'https://<API GATEWAY ID>.execute-api.<AWS REGION>.amazonaws.com/<API GATEWAY STAGE NAME>/api/v1/abi/decoder';
+    ```
