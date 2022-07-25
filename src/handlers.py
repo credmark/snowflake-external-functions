@@ -214,9 +214,9 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
             idx) for idx, o in enumerate(abi)]
 
     decoded_input_values = decode_abi(
-        types(abi['inputs']), bytes.fromhex(input[10:]))
+        to_eth_abi_types(abi['inputs']), bytes.fromhex(input[10:]))
     decoded_output_values = decode_abi(
-        types(abi['outputs']), bytes.fromhex(output[2:]))
+        to_eth_abi_types(abi['outputs']), bytes.fromhex(output[2:]))
 
     input_names = names(abi['inputs'])
     output_names = names(abi['outputs'])
