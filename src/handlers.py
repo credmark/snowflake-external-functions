@@ -119,6 +119,24 @@ def _parse_event_for_data(event: dict) -> dict:
         }
 
 
+def to_eth_abi_types(abi):
+    '''
+    Docstring
+    '''
+    types_arr = []
+    for o in abi:
+        if o['type'].endswith('storage'):
+            types_arr.append('uint256')
+            continue
+        if o['type'] == 'tuple':
+            if o.get('components', None) is not None:
+                internal_types_arr = to_eth_abi_types(o.get('components'))
+                types_arr.append(f"({','.join(internal_types_arr)})")
+            continue
+        types_arr.append(o['type'])
+    return types_arr
+
+
 def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
     """
         Takes ABI definition, topics, and data, and decodes into readable format.
@@ -174,21 +192,21 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
         example output of this method:
 
         {
-        'name': 'transfer',
-        'signature': 'transfer(address,uint256)',
-        'signature_hash': '0xa9059cbb',
-        'inputs': {
-            'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
-            'amount': 242859825102880658436213
-            },
-        'outputs': {
-            '0': True
-            }
+            'name': 'transfer',
+            'signature': 'transfer(address,uint256)',
+            'signature_hash': '0xa9059cbb',
+            'inputs': {
+                'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
+                'amount': 242859825102880658436213
+                },
+            'outputs': {
+                '0': True
+                }
         }
     """
 
-    def types(abi):
-        return [o['type'] for o in abi]
+    # TODO: Handle internalType
+    # TODO: Handle delegateCall
 
     def names(abi):
         return [o['name'] if o.get('name', '') != '' else str(
