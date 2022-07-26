@@ -84,11 +84,23 @@ def to_signature(abi: dict) -> str:
     inputs = abi["inputs"]
     name = abi["name"]
 
-    if len(inputs) > 0:
-        types = [i["type"] for i in inputs]
-        return f"{name}({','.join(types)})"
+    input_types_expanded = []
 
-    return f"{name}()"
+    def expand_signature_types(inputs):
+        print(inputs)
+        types = []
+        for i in inputs:
+            if i['type'].endswith('storage'):
+                types.append('uint256')
+                continue
+            if i['type'] == 'tuple':
+                if i.get('components', None) is not None:
+                    types.append(expand_signature_types(i.get('components')))
+                    continue
+            types.append(i['type'])
+        return f"({','.join(types)})"
+
+    return f"{name}{expand_signature_types(inputs)}"
 
 
 def to_signature_hash(abi: dict) -> str:
