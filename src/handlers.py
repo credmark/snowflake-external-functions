@@ -1,9 +1,11 @@
+import enum
 import json
 import logging
 from eth_utils.abi import (
     event_abi_to_log_topic,
     function_abi_to_4byte_selector,
     _abi_to_signature)
+import utils
 
 from eth_abi import decode_abi
 from web3 import Web3
@@ -115,24 +117,6 @@ def _parse_event_for_data(event: dict) -> dict:
         }
 
 
-def to_eth_abi_types(abi):
-    '''
-    Docstring
-    '''
-    types_arr = []
-    for o in abi:
-        if o['type'].endswith('storage'):
-            types_arr.append('uint256')
-            continue
-        if o['type'] == 'tuple':
-            if o.get('components', None) is not None:
-                internal_types_arr = to_eth_abi_types(o.get('components'))
-                types_arr.append(f"({','.join(internal_types_arr)})")
-            continue
-        types_arr.append(o['type'])
-    return types_arr
-
-
 def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
     """
         Takes ABI definition, topics, and data, and decodes into readable format.
@@ -151,31 +135,24 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
             }
         }
     """
-    result = {}
-    topic_index = 1
-    topics_arr = topics.split(',')
-    data_types = []
-    data_names = []
-    result = {
+    topics_data = "".join(t[2:] for t in topics.split(',')[1:])
+    decoded_types_and_names = utils.to_decodable_types(abi)
+    decoded_input_values = decode_abi(
+        decoded_types_and_names['inputs']['types'], bytes.fromhex(data[2:]))
+    decoded_indexed_values = decode_abi(
+        decoded_types_and_names['indexed']['types'], bytes.fromhex(topics_data))
+
+    evt_data = {decoded_types_and_names['inputs']['names']
+                [i]: v for i, v in enumerate(decoded_input_values)}
+    for i, v in enumerate(decoded_indexed_values):
+        evt_data[decoded_types_and_names['indexed']['names'][i]] = v
+
+    return {
         'name': abi['name'],
         'signature': to_signature(abi),
-        'signature_hash': topics_arr[0],
-        'data': {}
+        'signature_hash': topics.split(',')[0],
+        'data': evt_data
     }
-
-    for idx, i in enumerate(abi['inputs']):
-        name = i['name'] if i.get('name', '') != '' else str(idx)
-        if i['indexed']:
-            result['data'][name] = decode_abi(
-                [i['type']], bytes.fromhex(topics_arr[topic_index][2:]))[0]
-            topic_index += 1
-            continue
-        data_types.append(i['type'])
-        data_names.append(name)
-    data_values = decode_abi(data_types, bytes.fromhex(data[2:]))
-    result['data'].update(
-        {data_names[i]: v for i, v in enumerate(data_values)})
-    return result
 
 
 def decode_contract_function(abi: dict, input: str, output: str) -> dict:
@@ -200,29 +177,22 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
                 }
         }
     """
-
+    pass
     # TODO: Handle internalType
     # TODO: Handle delegateCall
 
-    def names(abi):
-        return [o['name'] if o.get('name', '') != '' else str(
-            idx) for idx, o in enumerate(abi)]
-
+    decoded_types_and_names = utils.to_decodable_types(abi)
     decoded_input_values = decode_abi(
-        to_eth_abi_types(abi['inputs']), bytes.fromhex(input[10:]))
+        decoded_types_and_names['inputs']['types'], bytes.fromhex(input[10:]))
     decoded_output_values = decode_abi(
-        to_eth_abi_types(abi['outputs']), bytes.fromhex(output[2:]))
+        decoded_types_and_names['outputs']['types'], bytes.fromhex(output[2:]))
 
-    input_names = names(abi['inputs'])
-    output_names = names(abi['outputs'])
-    result = {
+    return {
         'name': abi['name'],
         'signature': to_signature(abi),
-        'signature_hash': input[:10]
+        'signature_hash': input[:10],
+        'inputs': {decoded_types_and_names['inputs']['names'][i]: v for i,
+                   v in enumerate(decoded_input_values)},
+        'outputs': {decoded_types_and_names['outputs']['names'][i]: v for i,
+                    v in enumerate(decoded_output_values)}
     }
-    result['inputs'] = {input_names[i]: v for i,
-                        v in enumerate(decoded_input_values)}
-    result['outputs'] = {output_names[i]: v for i,
-                         v in enumerate(decoded_output_values)}
-
-    return result
