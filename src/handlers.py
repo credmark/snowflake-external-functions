@@ -1,9 +1,10 @@
 import json
 import logging
-from eth_utils import event_abi_to_log_topic
-from eth_utils import function_abi_to_4byte_selector
+from eth_utils.abi import (
+    event_abi_to_log_topic,
+    function_abi_to_4byte_selector,
+    _abi_to_signature)
 
-from web3 import Web3
 from eth_abi import decode_abi
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -82,25 +83,8 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
 def to_signature(abi: dict) -> str:
     """Takes ABI definition and returns an event/method signature
     (i.e. Transfer(address,address,value))"""
-    inputs = abi["inputs"]
-    name = abi["name"]
 
-    input_types_expanded = []
-
-    def expand_signature_types(inputs):
-        types = []
-        for i in inputs:
-            if i['type'].endswith('storage'):
-                types.append('uint256')
-                continue
-            if i['type'] == 'tuple':
-                if i.get('components', None) is not None:
-                    types.append(expand_signature_types(i.get('components')))
-                    continue
-            types.append(i['type'])
-        return f"({','.join(types)})"
-
-    return f"{name}{expand_signature_types(inputs)}"
+    return _abi_to_signature(abi)
 
 
 def to_signature_hash(abi: dict) -> str:
