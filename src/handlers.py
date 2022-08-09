@@ -1,14 +1,10 @@
-import enum
 import json
 import logging
-from eth_utils.abi import (
-    event_abi_to_log_topic,
-    function_abi_to_4byte_selector,
-    _abi_to_signature)
-import utils
+from typing import List
 
 from eth_abi import decode_abi
-from web3 import Web3
+from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
+                           function_abi_to_4byte_selector)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -136,7 +132,7 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
         }
     """
     topics_data = "".join(t[2:] for t in topics.split(',')[1:])
-    decoded_types_and_names = utils.to_decodable_types(abi)
+    decoded_types_and_names = to_decodable_types(abi)
     decoded_input_values = decode_abi(
         decoded_types_and_names['inputs']['types'], bytes.fromhex(data[2:]))
     decoded_indexed_values = decode_abi(
@@ -181,7 +177,7 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
     # TODO: Handle internalType
     # TODO: Handle delegateCall
 
-    decoded_types_and_names = utils.to_decodable_types(abi)
+    decoded_types_and_names = to_decodable_types(abi)
     decoded_input_values = decode_abi(
         decoded_types_and_names['inputs']['types'], bytes.fromhex(input[10:]))
     decoded_output_values = decode_abi(
@@ -196,3 +192,64 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
         'outputs': {decoded_types_and_names['outputs']['names'][i]: v for i,
                     v in enumerate(decoded_output_values)}
     }
+
+
+def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, array_dims: str = None):
+    """
+    docstring
+    """
+    def to_name(n, p):
+        return p + '.' + n if p else n
+
+    def to_type(t, a):
+        return t + a if a else t
+
+    type_arr = []
+    name_arr = []
+    for inp in abi_fragment:
+
+        if indexed != inp.get('indexed', False):
+            continue
+
+        typ = inp["type"]
+        name = inp["name"]
+
+        if not isinstance(typ, str):
+            continue
+        elif typ.endswith("storage"):
+            type_arr.append('uint256')
+            name_arr.append(to_name(name, prefix))
+            continue
+        elif not typ.startswith("tuple"):
+            type_arr.append(to_type(typ, array_dims))
+            name_arr.append(to_name(name, prefix))
+            continue
+        (tup_types, tup_names) = recursive_flatten_abi_types(
+            inp['components'], to_name(name, prefix), False, typ[5:])
+        type_arr.extend(tup_types)
+        name_arr.extend(tup_names)
+    return (type_arr, name_arr)
+
+
+def to_decodable_types(abi: dict) -> List[str]:
+    '''
+    Docstring
+    '''
+    i_t, i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', False)
+    i_i_t, i_i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', True)
+    o_t, o_n = recursive_flatten_abi_types(abi.get('outputs', []), '', False)
+    flattened_types = {
+        "inputs": {
+            "names": i_n,
+            "types": i_t
+        },
+        "indexed": {
+            "names": i_i_n,
+            "types": i_i_t
+        },
+        "outputs": {
+            "names": o_n,
+            "types": o_t
+        },
+    }
+    return flattened_types
