@@ -2,6 +2,7 @@ import json
 import logging
 from typing import List
 
+
 from eth_abi import decode_abi
 from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
                            function_abi_to_4byte_selector)
@@ -58,7 +59,7 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data})
+        "body": json.dumps({"data": event_data}, default=_default)
     }
 
 
@@ -76,7 +77,7 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data})
+        "body": json.dumps({"data": event_data}, default=_default)
     }
 
 
@@ -253,3 +254,16 @@ def to_decodable_types(abi: dict) -> List[str]:
         },
     }
     return flattened_types
+
+
+def _default(obj):
+
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode()
+        except UnicodeDecodeError:
+            # TODO: Maybe find a better way to handle certain bytes data
+            # rather than ignore and strip out the invalid byte characters
+            return str(obj, errors='ignore')
+
+    raise TypeError(f"type {type(obj)} is not JSON serializable. obj: {obj}")
