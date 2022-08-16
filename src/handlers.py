@@ -1,8 +1,11 @@
 import json
 import logging
+from typing import List
+
 
 from eth_abi import decode_abi
-from web3 import Web3
+from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
+                           function_abi_to_4byte_selector)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -56,7 +59,7 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data})
+        "body": json.dumps({"data": event_data}, default=_default)
     }
 
 
@@ -74,33 +77,24 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data})
+        "body": json.dumps({"data": event_data}, default=_default)
     }
 
 
 def to_signature(abi: dict) -> str:
     """Takes ABI definition and returns an event/method signature
     (i.e. Transfer(address,address,value))"""
-    inputs = abi["inputs"]
-    name = abi["name"]
 
-    if len(inputs) > 0:
-        types = [i["type"] for i in inputs]
-        return f"{name}({','.join(types)})"
-
-    return f"{name}()"
+    return _abi_to_signature(abi)
 
 
 def to_signature_hash(abi: dict) -> str:
     """Takes ABI definition and computes the SHA-3 hash"""
     type = abi["type"]
-    sig = to_signature(abi)
-    hash = Web3.sha3(text=sig).hex()
 
-    # Return full hash for event and 0x + first 4 bytes for methods
     if type.lower() == 'event':
-        return hash
-    return hash[:10]
+        return '0x'+str(event_abi_to_log_topic(abi).hex())
+    return '0x'+str(function_abi_to_4byte_selector(abi).hex())
 
 
 def _parse_event_for_data(event: dict) -> dict:
@@ -138,31 +132,24 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
             }
         }
     """
-    result = {}
-    topic_index = 1
-    topics_arr = topics.split(',')
-    data_types = []
-    data_names = []
-    result = {
+    topics_data = "".join(t[2:] for t in topics.split(',')[1:])
+    decoded_types_and_names = to_decodable_types(abi)
+    decoded_input_values = decode_abi(
+        decoded_types_and_names['inputs']['types'], bytes.fromhex(data[2:]))
+    decoded_indexed_values = decode_abi(
+        decoded_types_and_names['indexed']['types'], bytes.fromhex(topics_data))
+
+    evt_data = {decoded_types_and_names['inputs']['names']
+                [i]: v for i, v in enumerate(decoded_input_values)}
+    for i, v in enumerate(decoded_indexed_values):
+        evt_data[decoded_types_and_names['indexed']['names'][i]] = v
+
+    return {
         'name': abi['name'],
         'signature': to_signature(abi),
-        'signature_hash': topics_arr[0],
-        'data': {}
+        'signature_hash': topics.split(',')[0],
+        'data': evt_data
     }
-
-    for idx, i in enumerate(abi['inputs']):
-        name = i['name'] if i.get('name', '') != '' else str(idx)
-        if i['indexed']:
-            result['data'][name] = decode_abi(
-                [i['type']], bytes.fromhex(topics_arr[topic_index][2:]))[0]
-            topic_index += 1
-            continue
-        data_types.append(i['type'])
-        data_names.append(name)
-    data_values = decode_abi(data_types, bytes.fromhex(data[2:]))
-    result['data'].update(
-        {data_names[i]: v for i, v in enumerate(data_values)})
-    return result
 
 
 def decode_contract_function(abi: dict, input: str, output: str) -> dict:
@@ -175,41 +162,108 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
         example output of this method:
 
         {
-        'name': 'transfer',
-        'signature': 'transfer(address,uint256)',
-        'signature_hash': '0xa9059cbb',
-        'inputs': {
-            'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
-            'amount': 242859825102880658436213
-            },
-        'outputs': {
-            '0': True
-            }
+            'name': 'transfer',
+            'signature': 'transfer(address,uint256)',
+            'signature_hash': '0xa9059cbb',
+            'inputs': {
+                'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
+                'amount': 242859825102880658436213
+                },
+            'outputs': {
+                '0': True
+                }
         }
     """
+    pass
+    # TODO: Handle internalType
+    # TODO: Handle delegateCall
 
-    def types(abi):
-        return [o['type'] for o in abi]
-
-    def names(abi):
-        return [o['name'] if o.get('name', '') != '' else str(
-            idx) for idx, o in enumerate(abi)]
-
+    decoded_types_and_names = to_decodable_types(abi)
     decoded_input_values = decode_abi(
-        types(abi['inputs']), bytes.fromhex(input[10:]))
+        decoded_types_and_names['inputs']['types'], bytes.fromhex(input[10:]))
     decoded_output_values = decode_abi(
-        types(abi['outputs']), bytes.fromhex(output[2:]))
+        decoded_types_and_names['outputs']['types'], bytes.fromhex(output[2:]))
 
-    input_names = names(abi['inputs'])
-    output_names = names(abi['outputs'])
-    result = {
+    return {
         'name': abi['name'],
         'signature': to_signature(abi),
-        'signature_hash': input[:10]
+        'signature_hash': input[:10],
+        'inputs': {decoded_types_and_names['inputs']['names'][i]: v for i,
+                   v in enumerate(decoded_input_values)},
+        'outputs': {decoded_types_and_names['outputs']['names'][i]: v for i,
+                    v in enumerate(decoded_output_values)}
     }
-    result['inputs'] = {input_names[i]: v for i,
-                        v in enumerate(decoded_input_values)}
-    result['outputs'] = {output_names[i]: v for i,
-                         v in enumerate(decoded_output_values)}
 
-    return result
+
+def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, array_dims: str = None):
+    """
+    docstring
+    """
+    def to_name(n, p):
+        return p + '.' + n if p else n
+
+    def to_type(t, a):
+        return t + a if a else t
+
+    type_arr = []
+    name_arr = []
+    for inp in abi_fragment:
+
+        if indexed != inp.get('indexed', False):
+            continue
+
+        typ = inp["type"]
+        name = inp["name"]
+
+        if not isinstance(typ, str):
+            continue
+        elif typ.endswith("storage"):
+            type_arr.append('uint256')
+            name_arr.append(to_name(name, prefix))
+            continue
+        elif not typ.startswith("tuple"):
+            type_arr.append(to_type(typ, array_dims))
+            name_arr.append(to_name(name, prefix))
+            continue
+        (tup_types, tup_names) = recursive_flatten_abi_types(
+            inp['components'], to_name(name, prefix), False, typ[5:])
+        type_arr.extend(tup_types)
+        name_arr.extend(tup_names)
+    return (type_arr, name_arr)
+
+
+def to_decodable_types(abi: dict) -> List[str]:
+    '''
+    Docstring
+    '''
+    i_t, i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', False)
+    i_i_t, i_i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', True)
+    o_t, o_n = recursive_flatten_abi_types(abi.get('outputs', []), '', False)
+    flattened_types = {
+        "inputs": {
+            "names": i_n,
+            "types": i_t
+        },
+        "indexed": {
+            "names": i_i_n,
+            "types": i_i_t
+        },
+        "outputs": {
+            "names": o_n,
+            "types": o_t
+        },
+    }
+    return flattened_types
+
+
+def _default(obj):
+
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode()
+        except UnicodeDecodeError:
+            # TODO: Maybe find a better way to handle certain bytes data
+            # rather than ignore and strip out the invalid byte characters
+            return str(obj, errors='ignore')
+
+    raise TypeError(f"type {type(obj)} is not JSON serializable. obj: {obj}")
