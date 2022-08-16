@@ -50,7 +50,7 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
 
     event_data = _parse_event_for_data(event)
     logger.info(f"event data: {event_data}")
-
+    print(event_data)
     for row in event_data:
         row[1] = decode_contract_event(row[1], row[2], row[3])
         row.pop(3)
@@ -236,6 +236,8 @@ def to_decodable_types(abi: dict) -> List[str]:
     '''
     Docstring
     '''
+    print(abi)
+    print(type(abi))
     i_t, i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', False)
     i_i_t, i_i_n = recursive_flatten_abi_types(abi.get('inputs', []), '', True)
     o_t, o_n = recursive_flatten_abi_types(abi.get('outputs', []), '', False)
@@ -257,13 +259,15 @@ def to_decodable_types(abi: dict) -> List[str]:
 
 
 def _default(obj):
-
+    print('wheat?')
     if isinstance(obj, bytes):
+
         try:
-            return obj.decode()
+            return '0x' + str(obj.hex())
         except UnicodeDecodeError:
             # TODO: Maybe find a better way to handle certain bytes data
             # rather than ignore and strip out the invalid byte characters
+
             return str(obj, errors='ignore')
 
     raise TypeError(f"type {type(obj)} is not JSON serializable. obj: {obj}")
