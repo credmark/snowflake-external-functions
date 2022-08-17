@@ -19,33 +19,50 @@ HEADERS = {"Content-Type": "application/json"}
 def to_signature_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and calculates an event/method signature"""
 
-    event_data = _parse_event_for_data(event)
-    logger.info(f"event data: {event_data}")
+    try:
 
-    for row in event_data:
-        row[1] = to_signature(row[1])
+        event_data = _parse_event_for_data(event)
+        logger.info(f"event data: {event_data}")
 
-    return {
-        "statusCode": 200,
-        "headers": HEADERS,
-        "body": json.dumps({"data": event_data})
-    }
+        for row in event_data:
+            row[1] = to_signature(row[1])
+
+        return {
+            "statusCode": 200,
+            "headers": HEADERS,
+            "body": json.dumps({"data": event_data})
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": HEADERS,
+            "body": json.dumps({"exception": str(e)})
+        }
 
 
 def to_signature_hash_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and calculates an event/method signature hash"""
 
-    event_data = _parse_event_for_data(event)
-    logger.info(f"event data: {event_data}")
+    try:
+        event_data = _parse_event_for_data(event)
+        logger.info(f"event data: {event_data}")
 
-    for row in event_data:
-        row[1] = to_signature_hash(row[1])
+        for row in event_data:
+            row[1] = to_signature_hash(row[1])
 
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data})
-    }
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"data": event_data})
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": HEADERS,
+            "body": json.dumps({"exception": str(e)})
+        }
 
 
 def decode_contract_event_handler(event: dict, context: dict) -> dict:
@@ -65,18 +82,26 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
         row.pop(3)
         row.pop(2)
 
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data}, default=_default)
-    }
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"data": event_data}, default=_default)
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": HEADERS,
+            "body": json.dumps({"exception": str(e)})
+        }
 
 
 def decode_contract_function_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and decodes contract functions"""
 
-    event_data = _parse_event_for_data(event)
-    logger.info(f"event data: {event_data}")
+    try:
+        event_data = _parse_event_for_data(event)
+        logger.info(f"event data: {event_data}")
 
     for row in event_data:
         try:
@@ -90,11 +115,18 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
         row.pop(3)
         row.pop(2)
 
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": event_data}, default=_default)
-    }
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps({"data": event_data}, default=_default)
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "headers": HEADERS,
+            "body": json.dumps({"exception": str(e)})
+        }
 
 
 def to_signature(abi: dict) -> str:
