@@ -51,7 +51,14 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
     event_data = _parse_event_for_data(event)
     logger.info(f"event data: {event_data}")
     for row in event_data:
-        row[1] = decode_contract_event(row[1], row[2], row[3])
+        try:
+            row[1] = decode_contract_event(row[1], row[2], row[3])
+        except:
+            row[1] = {
+                "error": "could not decode row",
+                "abi": row[1],
+                "topics": row[2],
+                "data": row[3]}
         row.pop(3)
         row.pop(2)
 
@@ -69,7 +76,14 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
     logger.info(f"event data: {event_data}")
 
     for row in event_data:
-        row[1] = decode_contract_function(row[1], row[2], row[3])
+        try:
+            row[1] = decode_contract_function(row[1], row[2], row[3])
+        except:
+            row[1] = {
+                "error": "could not decode row",
+                "abi": row[1],
+                "input": row[2],
+                "output": row[3]}
         row.pop(3)
         row.pop(2)
 
