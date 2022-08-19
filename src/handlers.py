@@ -1,9 +1,13 @@
 import json
 import logging
 from typing import List
+from typing import List
 
 
 from eth_abi import decode_abi
+from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
+                           function_abi_to_4byte_selector)
+
 from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
                            function_abi_to_4byte_selector)
 
@@ -175,18 +179,21 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
         example output of this method:
 
         {
-            'name': 'transfer',
-            'signature': 'transfer(address,uint256)',
-            'signature_hash': '0xa9059cbb',
-            'inputs': {
-                'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
-                'amount': 242859825102880658436213
-                },
-            'outputs': {
-                '0': True
-                }
+                'name': 'transfer',
+                'signature': 'transfer(address,uint256)',
+                'signature_hash': '0xa9059cbb',
+                'inputs': {
+                    'recipient': '0x42e2e1afe6dc0701640601a6728a097a09efd44b',
+                    'amount': 242859825102880658436213
+                    },
+                'outputs': {
+                    '0': True
+                    }
         }
     """
+    pass
+    # TODO: Handle internalType
+    # TODO: Handle delegateCall
     pass
     # TODO: Handle internalType
     # TODO: Handle delegateCall
