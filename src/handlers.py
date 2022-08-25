@@ -1,7 +1,7 @@
 import json
 import logging
+import traceback
 from typing import List
-
 
 from eth_abi import decode_abi
 from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
@@ -20,7 +20,6 @@ def to_signature_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and calculates an event/method signature"""
 
     try:
-
         event_data = _parse_event_for_data(event)
         logger.info(f"event data: {event_data}")
 
@@ -34,10 +33,11 @@ def to_signature_handler(event: dict, context: dict) -> dict:
         }
 
     except Exception as e:
+        logger.error(e, exc_info=True)
         return {
             "statusCode": 500,
             "headers": HEADERS,
-            "body": json.dumps({"exception": str(e)})
+            "body": json.dumps(format_exception(e, event_data))
         }
 
 
@@ -58,10 +58,11 @@ def to_signature_hash_handler(event: dict, context: dict) -> dict:
         }
 
     except Exception as e:
+        logger.error(e, exc_info=True)
         return {
             "statusCode": 500,
             "headers": HEADERS,
-            "body": json.dumps({"exception": str(e)})
+            "body": json.dumps(format_exception(e, event_data))
         }
 
 
@@ -89,10 +90,11 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
         }
 
     except Exception as e:
+        logger.error(e, exc_info=True)
         return {
             "statusCode": 500,
             "headers": HEADERS,
-            "body": json.dumps({"exception": str(e)})
+            "body": json.dumps(format_exception(e, event_data))
         }
 
 
@@ -122,10 +124,11 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
         }
 
     except Exception as e:
+        logger.error(e, exc_info=True)
         return {
             "statusCode": 500,
             "headers": HEADERS,
-            "body": json.dumps({"exception": str(e)})
+            "body": json.dumps(format_exception(e, event_data))
         }
 
 
@@ -317,3 +320,11 @@ def _default(obj):
             return str(obj, errors='ignore')
 
     raise TypeError(f"type {type(obj)} is not JSON serializable. obj: {obj}")
+
+
+def format_exception(exc: Exception, event: dict):
+    return {
+        "exception": str(exc),
+        "stackTrace": traceback.format_exc(),
+        "event": event
+    }
