@@ -4,6 +4,7 @@ import traceback
 from typing import List
 
 from eth_abi import decode_abi
+from eth_abi.exceptions import InsufficientDataBytes
 from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
                            function_abi_to_4byte_selector)
 
@@ -168,23 +169,35 @@ def decode_contract_event(abi: dict, topics: str, data: str) -> dict:
             }
         }
     """
+    decoded_successfully = True
     topics_data = "".join(t[2:] for t in topics.split(',')[1:])
-    decoded_types_and_names = to_decodable_types(abi)
-    decoded_input_values = decode_abi(
-        decoded_types_and_names['inputs']['types'], bytes.fromhex(data[2:]))
-    decoded_indexed_values = decode_abi(
-        decoded_types_and_names['indexed']['types'], bytes.fromhex(topics_data))
 
-    evt_data = {decoded_types_and_names['inputs']['names']
-                [i]: v for i, v in enumerate(decoded_input_values)}
-    for i, v in enumerate(decoded_indexed_values):
-        evt_data[decoded_types_and_names['indexed']['names'][i]] = v
+    decoded_types_and_names = to_decodable_types(abi)
+    try:
+        decoded_input_values = decode_abi(
+            decoded_types_and_names['inputs']['types'], bytes.fromhex(data[2:]))
+
+        decoded_indexed_values = decode_abi(
+            decoded_types_and_names['indexed']['types'], bytes.fromhex(topics_data))
+
+        evt_data = {decoded_types_and_names['inputs']['names']
+                    [i]: v for i, v in enumerate(decoded_input_values)}
+
+        for i, v in enumerate(decoded_indexed_values):
+            evt_data[decoded_types_and_names['indexed']['names'][i]] = v
+
+    except InsufficientDataBytes as e:
+        logger.error("exception", exc_info=True)
+        logger.error(json.dumps({"abi": abi, "topics": topics, "data": data}))
+        decoded_successfully = False
+        evt_data = {"exception": str(e)}
 
     return {
         'name': abi['name'],
         'signature': to_signature(abi),
         'signature_hash': topics.split(',')[0],
-        'data': evt_data
+        'data': evt_data,
+        'decoded_successfully': decoded_successfully,
     }
 
 
@@ -311,3 +324,17 @@ def format_exception(exc: Exception, event: dict):
         "stackTrace": traceback.format_exc(),
         "event": event
     }
+
+
+if __name__ == "__main__":
+    import sys
+    from pprint import pprint
+
+    filename = sys.argv[1]
+    print(f"loading event {filename}")
+
+    with open(filename) as fp:
+        event = json.load(fp)
+
+    response = decode_contract_event_handler(event, {})
+    pprint(response, indent=2)
