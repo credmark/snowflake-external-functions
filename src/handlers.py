@@ -1,7 +1,6 @@
 import json
 import logging
 from typing import List
-from typing import List
 
 
 from eth_abi import decode_abi
@@ -191,18 +190,16 @@ def decode_contract_function(abi: dict, input: str, output: str) -> dict:
                     }
         }
     """
-    pass
-    # TODO: Handle internalType
-    # TODO: Handle delegateCall
-    pass
-    # TODO: Handle internalType
-    # TODO: Handle delegateCall
 
     decoded_types_and_names = to_decodable_types(abi)
-    decoded_input_values = decode_abi(
-        decoded_types_and_names['inputs']['types'], bytes.fromhex(input[10:]))
-    decoded_output_values = decode_abi(
-        decoded_types_and_names['outputs']['types'], bytes.fromhex(output[2:]))
+    decoded_input_values = []
+    if input is not None:
+        decoded_input_values = decode_abi(
+            decoded_types_and_names['inputs']['types'], bytes.fromhex(input[10:]))
+    decoded_output_values = []
+    if output is not None:
+        decoded_output_values = decode_abi(
+            decoded_types_and_names['outputs']['types'], bytes.fromhex(output[2:]))
 
     return {
         'name': abi['name'],
