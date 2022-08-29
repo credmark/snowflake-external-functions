@@ -75,7 +75,8 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
     for row in event_data:
         try:
             row[1] = decode_contract_event(row[1], row[2], row[3])
-        except:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             row[1] = {
                 "error": "could not decode row",
                 "abi": row[1],
@@ -90,26 +91,18 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
             "body": json.dumps({"data": event_data}, default=_default)
         }
 
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        return {
-            "statusCode": 500,
-            "headers": HEADERS,
-            "body": json.dumps(format_exception(e, event_data))
-        }
-
 
 def decode_contract_function_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and decodes contract functions"""
 
-    try:
-        event_data = _parse_event_for_data(event)
-        logger.info(f"event data: {event_data}")
+    event_data = _parse_event_for_data(event)
+    logger.info(f"event data: {event_data}")
 
     for row in event_data:
         try:
             row[1] = decode_contract_function(row[1], row[2], row[3])
-        except:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             row[1] = {
                 "error": "could not decode row",
                 "abi": row[1],
@@ -122,14 +115,6 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"data": event_data}, default=_default)
-        }
-
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        return {
-            "statusCode": 500,
-            "headers": HEADERS,
-            "body": json.dumps(format_exception(e, event_data))
         }
 
 
