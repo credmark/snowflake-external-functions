@@ -85,11 +85,11 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
         row.pop(3)
         row.pop(2)
 
-        return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"data": event_data}, default=_default)
-        }
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps({"data": event_data}, default=_default)
+    }
 
 
 def decode_contract_function_handler(event: dict, context: dict) -> dict:
@@ -111,11 +111,11 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
         row.pop(3)
         row.pop(2)
 
-        return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"data": event_data}, default=_default)
-        }
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps({"data": event_data}, default=_default)
+    }
 
 
 def to_signature(abi: dict) -> str:
