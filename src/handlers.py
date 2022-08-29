@@ -8,8 +8,6 @@ from eth_abi.exceptions import InsufficientDataBytes
 from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
                            function_abi_to_4byte_selector)
 
-from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
-                           function_abi_to_4byte_selector)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -95,8 +93,9 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
 def decode_contract_function_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and decodes contract functions"""
 
-    event_data = _parse_event_for_data(event)
-    logger.info(f"event data: {event_data}")
+    try:
+        event_data = _parse_event_for_data(event)
+        logger.info(f"event data: {event_data}")
 
     for row in event_data:
         try:
