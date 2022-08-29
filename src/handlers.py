@@ -249,7 +249,9 @@ def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, 
     """
     docstring
     """
-    def to_name(n, p):
+    def to_name(n, p, i=0):
+        if n == "":
+            return p + '.' + "_"+str(i) if p else "_"+str(i)
         return p + '.' + n if p else n
 
     def to_type(t, a):
@@ -257,6 +259,7 @@ def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, 
 
     type_arr = []
     name_arr = []
+    idx = 0
     for inp in abi_fragment:
 
         if indexed != inp.get('indexed', False):
@@ -269,16 +272,17 @@ def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, 
             continue
         elif typ.endswith("storage"):
             type_arr.append('uint256')
-            name_arr.append(to_name(name, prefix))
+            name_arr.append(to_name(name, prefix, idx))
             continue
         elif not typ.startswith("tuple"):
             type_arr.append(to_type(typ, array_dims))
-            name_arr.append(to_name(name, prefix))
+            name_arr.append(to_name(name, prefix, idx))
             continue
         (tup_types, tup_names) = recursive_flatten_abi_types(
-            inp['components'], to_name(name, prefix), False, typ[5:])
+            inp['components'], to_name(name, prefix. idx), False, typ[5:])
         type_arr.extend(tup_types)
         name_arr.extend(tup_names)
+        idx = idx+1
     return (type_arr, name_arr)
 
 
