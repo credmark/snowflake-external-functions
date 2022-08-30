@@ -277,7 +277,7 @@ def recursive_flatten_abi_types(abi_fragment: dict, prefix: str, indexed: bool, 
             name_arr.append(to_name(name, prefix, idx))
             continue
         (tup_types, tup_names) = recursive_flatten_abi_types(
-            inp['components'], to_name(name, prefix. idx), False, typ[5:])
+            inp['components'], to_name(name, prefix, idx), False, typ[5:])
         type_arr.extend(tup_types)
         name_arr.extend(tup_names)
         idx = idx+1
