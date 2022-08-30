@@ -93,9 +93,8 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
 def decode_contract_function_handler(event: dict, context: dict) -> dict:
     """Takes in Snowflake data and decodes contract functions"""
 
-    try:
-        event_data = _parse_event_for_data(event)
-        logger.info(f"event data: {event_data}")
+    event_data = _parse_event_for_data(event)
+    logger.info(f"event data: {event_data}")
 
     for row in event_data:
         try:
