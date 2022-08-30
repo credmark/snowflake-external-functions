@@ -5,8 +5,18 @@ to_signature = handlers.to_signature
 to_signature_hash = handlers.to_signature_hash
 decode_contract_event = handlers.decode_contract_event
 decode_contract_function = handlers.decode_contract_function
+evt_handler = handlers.decode_contract_event_handler
+fn_handler = handlers.decode_contract_function_handler
 
 if __name__ == '__main__':
+    # with open('./src/test.json') as json_file:
+    #     print(to_signature_hash(json.load(json_file)))
+    with open('./src/test.json') as json_file:
+        event_data = {'body': json.dumps(json.load(json_file))}
+
+    print(fn_handler(event_data, None))
+
+    exit()
 
     transfer_evt_sighash = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
     transfer_evt_topics = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef,0x000000000000000000000000e59d5b5eb2a4e02c033a46a18e47f399f7a1e14b,0x0000000000000000000000003349217670f9aa55c5640a2b3d806654d27d0569'
@@ -159,6 +169,18 @@ if __name__ == '__main__':
     print(to_signature(json.loads(transfer_evt_abi)))
     print("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
           to_signature_hash(json.loads(transfer_evt_abi)))
+    evt_out = decode_contract_event(
+        json.loads(transfer_evt_abi),
+        transfer_evt_topics,
+        transfer_evt_data
+    )
+    print(evt_out)
+
+    transfer_evt_data = '0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001'
+    transfer_evt_topics = '0x15ea97c5f34d18535b75336d587619fcbbcc608d697fbf77bd007514f9bccec3'
+    transfer_evt_abi = json.dumps(
+        {'anonymous': False, 'inputs': [{'indexed': False, 'internalType': 'bool', 'name': 'success', 'type': 'bool'}, {'indexed': False, 'internalType': 'address', 'name': 'to', 'type': 'address'}, {'indexed': False, 'internalType': 'bytes', 'name': 'result', 'type': 'bytes'}], 'name': 'Action', 'type': 'event'})
+    print(transfer_evt_abi)
     evt_out = decode_contract_event(
         json.loads(transfer_evt_abi),
         transfer_evt_topics,
