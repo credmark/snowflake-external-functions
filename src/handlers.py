@@ -10,7 +10,7 @@ from eth_utils.abi import (_abi_to_signature, event_abi_to_log_topic,
 
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 
 HEADERS = {"Content-Type": "application/json"}
 
@@ -33,6 +33,7 @@ def to_signature_handler(event: dict, context: dict) -> dict:
 
     except Exception as e:
         logger.error(e, exc_info=True)
+        logger.error(f"event data: {event_data}")
         return {
             "statusCode": 500,
             "headers": HEADERS,
@@ -58,6 +59,7 @@ def to_signature_hash_handler(event: dict, context: dict) -> dict:
 
     except Exception as e:
         logger.error(e, exc_info=True)
+        logger.error(f"event data: {event_data}")
         return {
             "statusCode": 500,
             "headers": HEADERS,
@@ -75,6 +77,7 @@ def decode_contract_event_handler(event: dict, context: dict) -> dict:
             row[1] = decode_contract_event(row[1], row[2], row[3])
         except Exception as e:
             logger.error(e, exc_info=True)
+            logger.error(f"event data: {row[1]}")
             row[1] = {
                 "error": "could not decode row",
                 "abi": row[1],
@@ -101,6 +104,7 @@ def decode_contract_function_handler(event: dict, context: dict) -> dict:
             row[1] = decode_contract_function(row[1], row[2], row[3])
         except Exception as e:
             logger.error(e, exc_info=True)
+            logger.error(f"event data: {row[1]}")
             row[1] = {
                 "error": "could not decode row",
                 "abi": row[1],
